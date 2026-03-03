@@ -3,8 +3,21 @@
 //! Provides Gemini Vision image recognition, text file detection,
 //! and HTTP download helpers used by Telegram, Discord, and other adapters.
 
+use std::sync::LazyLock;
 use std::time::Duration;
 use tracing::warn;
+
+/// Vision model for image recognition (override via `VISION_MODEL` env var).
+static VISION_MODEL: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("VISION_MODEL").unwrap_or_else(|_| "gemini-2.5-flash".to_string())
+});
+
+/// Vision API base URL (override via `VISION_API_BASE` env var).
+static VISION_API_BASE: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("VISION_API_BASE").unwrap_or_else(|_| {
+        "https://generativelanguage.googleapis.com/v1beta".to_string()
+    })
+});
 
 /// Recognize image content using Gemini Vision API.
 ///
@@ -54,7 +67,8 @@ pub async fn recognize_image_gemini(
     });
 
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+        "{}/models/{}:generateContent?key={gemini_key}",
+        *VISION_API_BASE, *VISION_MODEL
     );
 
     match client
